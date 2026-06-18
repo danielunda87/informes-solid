@@ -684,10 +684,16 @@ public class ReporteSolicitudImportacion extends BaseInforme {
                     paginaActualSeccion = paginaCopia;
                 }
 
-                // 1. Marca de agua en el centro de la página
-                PdfContentByte canvasUnder = writer.getDirectContentUnder();
-                Font fontMarca = FontFactory.getFont("Helvetica", 48, Font.BOLD, new Color(220, 220, 220));
-                Phrase marca = new Phrase("Página " + paginaActualSeccion, fontMarca);
+                // 1. Marca de agua en el centro de la página (en primer plano con transparencia sutil)
+                PdfContentByte canvasUnder = writer.getDirectContent();
+                canvasUnder.saveState();
+                
+                PdfGState gs = new PdfGState();
+                gs.setFillOpacity(0.12f); // Transparencia del 12% para que sea visible pero sutil
+                canvasUnder.setGState(gs);
+                
+                Font fontMarca = FontFactory.getFont("Helvetica", 65, Font.BOLD, new Color(180, 180, 180));
+                Phrase marca = new Phrase(seccion, fontMarca);
 
                 ColumnText.showTextAligned(
                         canvasUnder,
@@ -695,7 +701,9 @@ public class ReporteSolicitudImportacion extends BaseInforme {
                         marca,
                         (document.right() + document.left()) / 2,
                         (document.top() + document.bottom()) / 2,
-                        0);
+                        30); // Rotación diagonal de 30 grados
+                
+                canvasUnder.restoreState();
 
                 // 2. Pie de página
                 PdfContentByte canvas = writer.getDirectContent();
@@ -721,8 +729,8 @@ public class ReporteSolicitudImportacion extends BaseInforme {
                 cellCenter.setBorder(PdfPCell.NO_BORDER);
                 footerTable.addCell(cellCenter);
 
-                // Celda derecha: "hoja X de Y"
-                Phrase p = new Phrase("hoja " + paginaActualSeccion + " de ", fontNormal);
+                // Celda derecha: "Página X de Y"
+                Phrase p = new Phrase("Página " + paginaActualSeccion + " de ", fontNormal);
                 if (totalPagesTemplate != null) {
                     Image img = Image.getInstance(totalPagesTemplate);
                     p.add(new Chunk(img, 0, 0));
