@@ -109,7 +109,7 @@ public class ReporteSolicitudImportacion extends BaseInforme {
         String sqlCabecera = "SELECT tipo, codigosolicitud, ordentrabajo, uen, cliente, ubicacion, "
                 + "fecha, fechanecesidad, nombreusuario, direccionentrega, proveedor, transporte, "
                 + "factorimportacion, tipoimportacion, factoreurousd, trm, codigo "
-                + "FROM solicitudmaterial WHERE codigosolicitud = '" + codigoEsc + "'";
+                + "FROM solicitudmaterial WHERE codigo::text = '" + codigoEsc + "'";
 
         ResultSet rsCab = conexion.funcionConsultar(sqlCabecera);
         String[][] cabecera = ConexionDatos.armarArreglo(rsCab);
