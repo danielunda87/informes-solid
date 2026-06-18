@@ -1,0 +1,17 @@
+# Build files
+bin/
+out/
+
+# JDK
+src/oracleJdk-26/
+
+# IDE files
+.vscode/
+.classpath
+.project
+
+# Temporary files
+temp/
+*.pdf
+*.xlsx
+*.log
