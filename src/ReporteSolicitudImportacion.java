@@ -268,11 +268,11 @@ public class ReporteSolicitudImportacion extends BaseInforme {
         PdfPTable meta = new PdfPTable(2);
         meta.setWidthPercentage(100);
         meta.addCell(crearCelda("CÓDIGO", fontMetaEtiqueta, Element.ALIGN_CENTER, GRIS_CLARO, 1));
-        meta.addCell(crearCelda(CODIGO_FORMATO, fontMetaValor, Element.ALIGN_CENTER, Color.WHITE, 1));
+        meta.addCell(crearCelda(CODIGO_FORMATO, fontMetaValor, Element.ALIGN_CENTER, null, 1));
         meta.addCell(crearCelda("FECHA", fontMetaEtiqueta, Element.ALIGN_CENTER, GRIS_CLARO, 1));
-        meta.addCell(crearCelda(FECHA_FORMATO, fontMetaValor, Element.ALIGN_CENTER, Color.WHITE, 1));
+        meta.addCell(crearCelda(FECHA_FORMATO, fontMetaValor, Element.ALIGN_CENTER, null, 1));
         meta.addCell(crearCelda("VERSIÓN", fontMetaEtiqueta, Element.ALIGN_CENTER, GRIS_CLARO, 1));
-        meta.addCell(crearCelda(VERSION_FORMATO, fontMetaValor, Element.ALIGN_CENTER, Color.WHITE, 1));
+        meta.addCell(crearCelda(VERSION_FORMATO, fontMetaValor, Element.ALIGN_CENTER, null, 1));
 
         PdfPCell cellMeta = new PdfPCell(meta);
         cellMeta.setPadding(1);
@@ -295,7 +295,6 @@ public class ReporteSolicitudImportacion extends BaseInforme {
         // Espacio visual entre IMPORTACION y NUMERO DE RADICADO
         PdfPCell espacio = new PdfPCell(new Phrase(""));
         espacio.setBorder(PdfPCell.NO_BORDER);
-        espacio.setBackgroundColor(Color.WHITE);
         table.addCell(espacio);
 
         table.addCell(crearCeldaEtiqueta("NUMERO DE RADICADO"));
@@ -380,12 +379,12 @@ public class ReporteSolicitudImportacion extends BaseInforme {
         if (valorCompacto) {
             table.addCell(crearCeldaValorCompacto(valor));
         } else {
-            table.addCell(crearCelda(valor, fontNormal, Element.ALIGN_LEFT, Color.WHITE, 3));
+            table.addCell(crearCelda(valor, fontNormal, Element.ALIGN_LEFT, null, 3));
         }
     }
 
     private PdfPCell crearCeldaValorCompacto(String texto) throws Exception {
-        PdfPCell celda = crearCelda(texto, fontNormal, Element.ALIGN_CENTER, Color.WHITE, 2);
+        PdfPCell celda = crearCelda(texto, fontNormal, Element.ALIGN_CENTER, null, 2);
         celda.setNoWrap(true);
         return celda;
     }
@@ -423,7 +422,7 @@ public class ReporteSolicitudImportacion extends BaseInforme {
                 if (!filaTieneDatos(datos[i])) {
                     continue;
                 }
-                agregarFilaDetalle(table, datos[i], idx % 2 == 0 ? Color.WHITE : GRIS_CLARO);
+                agregarFilaDetalle(table, datos[i], idx % 2 == 0 ? null : GRIS_CLARO);
                 idx++;
             }
         }
@@ -531,7 +530,7 @@ public class ReporteSolicitudImportacion extends BaseInforme {
             PdfPTable fecha = new PdfPTable(2);
             fecha.setWidthPercentage(100);
             fecha.addCell(crearCelda("FECHA", fontNegrita, Element.ALIGN_CENTER, GRIS_CLARO, 2));
-            fecha.addCell(crearCelda(" ", fontNormal, Element.ALIGN_CENTER, Color.WHITE, 2));
+            fecha.addCell(crearCelda(" ", fontNormal, Element.ALIGN_CENTER, null, 2));
             bloque.addCell(fecha);
 
             celda.addElement(bloque);
@@ -684,15 +683,9 @@ public class ReporteSolicitudImportacion extends BaseInforme {
                     paginaActualSeccion = paginaCopia;
                 }
 
-                // 1. Marca de agua en el centro de la página (en primer plano con transparencia sutil)
-                PdfContentByte canvasUnder = writer.getDirectContent();
-                canvasUnder.saveState();
-                
-                PdfGState gs = new PdfGState();
-                gs.setFillOpacity(0.12f); // Transparencia del 12% para que sea visible pero sutil
-                canvasUnder.setGState(gs);
-                
-                Font fontMarca = FontFactory.getFont("Helvetica", 65, Font.BOLD, new Color(180, 180, 180));
+                // 1. Marca de agua en el centro de la página (en el fondo, muy tenue y grande)
+                PdfContentByte canvasUnder = writer.getDirectContentUnder();
+                Font fontMarca = FontFactory.getFont("Helvetica", 130, Font.BOLD, new Color(242, 242, 242));
                 Phrase marca = new Phrase(seccion, fontMarca);
 
                 ColumnText.showTextAligned(
@@ -702,8 +695,6 @@ public class ReporteSolicitudImportacion extends BaseInforme {
                         (document.right() + document.left()) / 2,
                         (document.top() + document.bottom()) / 2,
                         30); // Rotación diagonal de 30 grados
-                
-                canvasUnder.restoreState();
 
                 // 2. Pie de página
                 PdfContentByte canvas = writer.getDirectContent();
@@ -712,8 +703,15 @@ public class ReporteSolicitudImportacion extends BaseInforme {
                 footerTable.setTotalWidth(document.right() - document.left());
                 footerTable.setWidths(new float[] { 30, 40, 30 });
 
-                // Celda izquierda: vacía
-                PdfPCell cellLeft = new PdfPCell(new Phrase("", fontNormal));
+                // Celda izquierda: "Página X de Y"
+                Phrase p = new Phrase("Página " + paginaActualSeccion + " de ", fontNormal);
+                if (totalPagesTemplate != null) {
+                    Image img = Image.getInstance(totalPagesTemplate);
+                    p.add(new Chunk(img, 0, 0));
+                }
+                PdfPCell cellLeft = new PdfPCell(p);
+                cellLeft.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cellLeft.setVerticalAlignment(Element.ALIGN_BOTTOM);
                 cellLeft.setBorder(PdfPCell.NO_BORDER);
                 footerTable.addCell(cellLeft);
 
@@ -729,13 +727,9 @@ public class ReporteSolicitudImportacion extends BaseInforme {
                 cellCenter.setBorder(PdfPCell.NO_BORDER);
                 footerTable.addCell(cellCenter);
 
-                // Celda derecha: "Página X de Y"
-                Phrase p = new Phrase("Página " + paginaActualSeccion + " de ", fontNormal);
-                if (totalPagesTemplate != null) {
-                    Image img = Image.getInstance(totalPagesTemplate);
-                    p.add(new Chunk(img, 0, 0));
-                }
-                PdfPCell cellRight = new PdfPCell(p);
+                // Celda derecha: "Solid-ERP" (Marca de agua sutil abajo a la derecha)
+                Font fontSolid = FontFactory.getFont("Helvetica", 9, Font.BOLD | Font.ITALIC, new Color(180, 180, 180));
+                PdfPCell cellRight = new PdfPCell(new Phrase("Solid-ERP", fontSolid));
                 cellRight.setHorizontalAlignment(Element.ALIGN_RIGHT);
                 cellRight.setVerticalAlignment(Element.ALIGN_BOTTOM);
                 cellRight.setBorder(PdfPCell.NO_BORDER);
