@@ -287,12 +287,12 @@ public class ReporteSolicitudImportacion extends BaseInforme {
         PdfPTable table = new PdfPTable(5);
         table.setWidthPercentage(100);
         table.setHorizontalAlignment(Element.ALIGN_LEFT);
-        table.setWidths(new float[] { 10, 20, 40, 20, 10 });
+        table.setWidths(new float[] { 22f, 20f, 15f, 25f, 18f });
 
-        table.addCell(crearCeldaEtiqueta("FORMATO"));
+        table.addCell(crearCeldaEtiqueta("TIPO DE SOLICITUD"));
         table.addCell(crearCeldaValorCompacto(valor(h[0])));
 
-        // Espacio visual entre IMPORTACION y NUMERO DE RADICADO
+        // Espacio visual entre el tipo de solicitud y NUMERO DE RADICADO
         PdfPCell espacio = new PdfPCell(new Phrase(""));
         espacio.setBorder(PdfPCell.NO_BORDER);
         table.addCell(espacio);
@@ -669,6 +669,12 @@ public class ReporteSolicitudImportacion extends BaseInforme {
                 helv = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
                 
                 File archivoMarca = new File("images/imagenMarca2.png");
+                if (!archivoMarca.exists()) {
+                    archivoMarca = new File("../images/imagenMarca2.png");
+                }
+                if (!archivoMarca.exists()) {
+                    archivoMarca = new File("C:\\Users\\amejoramiento1\\Desktop\\INFORMES SOLID\\images\\imagenMarca2.png");
+                }
                 if (archivoMarca.exists()) {
                     imgMarca = Image.getInstance(archivoMarca.getAbsolutePath());
                     imgMarca.scaleToFit(65, 18);

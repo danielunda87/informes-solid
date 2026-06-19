@@ -12,29 +12,27 @@ import com.lowagie.text.*;
 import com.lowagie.text.pdf.*;
 
 /**
- * Generador del informe PDF FT-ALM-35 — Solicitud de Panelería.
- * Produce una sola página con el detalle completo de paneles y su uso.
+ * Generador del informe PDF FT-ALM-32 — Solicitud de Dotación.
+ * Produce una sola página con la planilla de entrega de dotaciones.
  */
-public class ReporteSolicitudPaneleria extends BaseInforme {
+public class ReporteSolicitudDotacion extends BaseInforme {
 
-    private static final String CODIGO_FORMATO = "FT-ALM-35";
-    private static final String FECHA_FORMATO = "jul-2025";
-    private static final String VERSION_FORMATO = "04";
+    private static final String CODIGO_FORMATO = "FT-ALM-32";
+    private static final String FECHA_FORMATO = "mar-26";
+    private static final String VERSION_FORMATO = "4";
 
     private ConexionDatos conexion;
     private String dirArchivo;
     private java.awt.Image imageLogo = null;
     private DecimalFormat formateadorNumero;
-    private DecimalFormat formateadorDecimal;
 
-    public ReporteSolicitudPaneleria(ConexionDatos inConexion) {
+    public ReporteSolicitudDotacion(ConexionDatos inConexion) {
         super();
         this.conexion = inConexion;
         DecimalFormatSymbols simbolos = new DecimalFormatSymbols();
         simbolos.setDecimalSeparator(',');
         simbolos.setGroupingSeparator('.');
         formateadorNumero = new DecimalFormat("#,##0.##", simbolos);
-        formateadorDecimal = new DecimalFormat("#,##0.###", simbolos);
         cargarLogo();
     }
 
@@ -58,8 +56,8 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
     public void generar(String codigoSolicitud) throws Exception {
         String codigoEsc = escaparSql(codigoSolicitud);
 
-        String sqlCabecera = "SELECT tipo, codigosolicitud, ordentrabajo, uen, cliente, ubicacion, "
-                + "fecha, fechanecesidad, nombreusuario, direccionentrega, proveedor, transporte, codigo "
+        String sqlCabecera = "SELECT tipo, codigosolicitud, fecha, fechanecesidad, nombreusuario, "
+                + "quienrecibe, numerocontacto, ciudadentrega, direccionentrega, observaciones, codigo "
                 + "FROM solicitudmaterial WHERE codigo::text = '" + codigoEsc + "'";
 
         ResultSet rsCab = conexion.funcionConsultar(sqlCabecera);
@@ -70,22 +68,21 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
         }
 
         String[] h = cabecera[0];
-        String codigoInterno = h[12];
+        String codigoInterno = h[10];
 
         String sqlDetalle = "SELECT "
-                + "lsm.codigo AS linea_codigo, "
+                + "e.nombre AS colaborador_nombre, "
                 + "lsm.referenciaproducto, "
                 + "lsm.descripcionproducto, "
                 + "lsm.unidadmedida, "
-                + "lsm.unidadmedidastd, "
-                + "lsm.cantidad AS cantidad_total, "
-                + "dcs.cantidadund, "
-                + "dcs.cantidadmts, "
-                + "dcs.uso "
+                + "lsm.cantidad, "
+                + "lsm.tipodestino, "
+                + "lsm.observaciones, "
+                + "lsm.nrocedula "
                 + "FROM lineasolicitudmaterial lsm "
-                + "LEFT JOIN detallecantidadlineasolicitudpaneles dcs ON dcs.lineasolicitudmaterial = lsm.codigo "
+                + "LEFT JOIN establecimiento e ON e.nrocedula = lsm.nrocedula "
                 + "WHERE lsm.solicitudmaterial = '" + escaparSql(codigoInterno) + "' "
-                + "ORDER BY lsm.referenciaproducto, lsm.codigo, dcs.codigo";
+                + "ORDER BY lsm.codigo";
 
         ResultSet rsDet = conexion.funcionConsultar(sqlDetalle);
         String[][] detalle = ConexionDatos.armarArreglo(rsDet);
@@ -95,26 +92,18 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
 
     public void generarVistaPrevia(String codigoSolicitud) throws Exception {
         String[] cabecera = {
-                "PANELERIA", codigoSolicitud, "22236", "RCC", "FRIOGAN", "VILLAVICENCIO",
-                "2026-06-19", "2026-06-30", "UNDA HERRERA DANIEL", "Bodega principal Villavicencio",
-                "-", "-", "9"
+                "DOTACION", codigoSolicitud, "2026-06-18", "2026-06-26", "HARRY OSORIO LENIS",
+                "DANIEL UNDA", "3154887766", "BOGOTA", "Calle 80 Bodega Central", "Entrega programada primer semestre",
+                "7"
         };
 
         String[][] detalle = {
-                { "45", "1-18-42", "PANEL FRIGOWALL 80 MM 9002 C-28 PUR", "MT", "MT2", "92", "7", "8", "prueba16" },
-                { "45", "1-18-42", "PANEL FRIGOWALL 80 MM 9002 C-28 PUR", "MT", "MT2", "92", "6", "6", "prueba17" },
-                { "46", "1-18-42", "PANEL FRIGOWALL 80 MM 9002 C-28 PUR", "MT", "MT2", "82", "6", "5", "prueba13" },
-                { "46", "1-18-42", "PANEL FRIGOWALL 80 MM 9002 C-28 PUR", "MT", "MT2", "82", "7", "4", "prueba14" },
-                { "46", "1-18-42", "PANEL FRIGOWALL 80 MM 9002 C-28 PUR", "MT", "MT2", "82", "8", "3", "prueba15" },
-                { "44", "1-18-70", "PANEL MONOWALL 30 MM 9002 C-28 PIR C/MICRONERV", "MT", "MT2", "30", "5", "6", "prueba10" },
-                { "43", "1-18-88", "PANEL SUPERWALL CLEAN 80 MM 9002 C-26 (FRP) LISA", "MT2", "MT2", "40", "10", "4", "prueba8" },
-                { "41", "1-18-90", "PANEL TECHMET 30 MM 9002 C-28", "MT", "MT2", "127", "5", "8", "prueba1" },
-                { "41", "1-18-90", "PANEL TECHMET 30 MM 9002 C-28", "MT", "MT2", "127", "4", "6", "prueba2" },
-                { "41", "1-18-90", "PANEL TECHMET 30 MM 9002 C-28", "MT", "MT2", "127", "7", "9", "prueba3" },
-                { "42", "1-18-90", "PANEL TECHMET 30 MM 9002 C-28", "MT", "MT2", "110", "4", "6", "prueba4" },
-                { "42", "1-18-90", "PANEL TECHMET 30 MM 9002 C-28", "MT", "MT2", "110", "9", "2", "prueba5" },
-                { "42", "1-18-90", "PANEL TECHMET 30 MM 9002 C-28", "MT", "MT2", "110", "4", "5", "prueba6" },
-                { "42", "1-18-90", "PANEL TECHMET 30 MM 9002 C-28", "MT", "MT2", "110", "8", "6", "prueba7" }
+                { "UNDA HERRERA DANIEL", "11-25-8", "CAMISA DRILL M/L T/S", "UND", "2", "2 - Enviar a obra",
+                        "Con logo reflectivo", "1127620314" },
+                { "UNDA HERRERA DANIEL", "11-25-9", "JEAN DRILL T/32", "UND", "2", "2 - Enviar a obra",
+                        "Reforzado en rodillas", "1127620314" },
+                { "OSORIO LENIS HARRY", "11-25-10", "BOTAS DE SEGURIDAD T/40", "PAR", "1", "1 - Entregar a planta", "",
+                        "1127620315" }
         };
 
         escribirPdf(codigoSolicitud, cabecera, detalle, false);
@@ -127,7 +116,7 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
             carpetaTemp.mkdirs();
         }
 
-        dirArchivo = "temp" + File.separator + "Planilla de Impresion Paneleria_" + codigoSolicitud + "_"
+        dirArchivo = "temp" + File.separator + "Planilla de Impresion Dotacion_" + codigoSolicitud + "_"
                 + System.currentTimeMillis() + ".pdf";
 
         Document documento = new Document(PageSize.LETTER, 30, 30, 26, 36);
@@ -150,8 +139,8 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
         documento.add(new Paragraph("\n", fontMini));
         documento.add(crearFilaFormatoRadicado(h));
         documento.add(new Paragraph("\n", fontMini));
-        documento.add(crearTituloSeccion("INFORMACION GENERAL"));
-        documento.add(crearFilaInformacionGeneral(h));
+        documento.add(crearTituloSeccion("INFORMACIÓN DE ENTREGA"));
+        documento.add(crearFilaInformacionEntrega(h));
         documento.add(new Paragraph("\n", fontMini));
         documento.add(crearTablaDetalle(detalle));
     }
@@ -178,7 +167,7 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
         cellLogo.setVerticalAlignment(Element.ALIGN_MIDDLE);
         table.addCell(cellLogo);
 
-        PdfPCell cellTitulo = crearCelda("SOLICITUD DE PANELERÍA", fontTitulo, Element.ALIGN_CENTER, null, 8);
+        PdfPCell cellTitulo = crearCelda("SOLICITUD DE DOTACIÓN", fontTitulo, Element.ALIGN_CENTER, null, 8);
         cellTitulo.setVerticalAlignment(Element.ALIGN_MIDDLE);
         table.addCell(cellTitulo);
 
@@ -210,13 +199,13 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
         table.setWidths(new float[] { 22f, 20f, 15f, 25f, 18f });
 
         table.addCell(crearCeldaEtiqueta("TIPO DE SOLICITUD"));
-        table.addCell(crearCeldaValorCompacto("PANELERIA"));
+        table.addCell(crearCeldaValorCompacto("DOTACION"));
 
         PdfPCell espacio = new PdfPCell(new Phrase(""));
         espacio.setBorder(PdfPCell.NO_BORDER);
         table.addCell(espacio);
 
-        table.addCell(crearCeldaEtiqueta("NUMERO DE RADICADO"));
+        table.addCell(crearCeldaEtiqueta("RADICADO"));
 
         PdfPCell celdaRadicado = crearCeldaValorCompacto(valor(h[1]));
         celdaRadicado.setPhrase(new Phrase(valor(h[1]), fontNegrita));
@@ -232,17 +221,40 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
         return table;
     }
 
-    private PdfPTable crearFilaInformacionGeneral(String[] h) throws Exception {
-        PdfPTable table = new PdfPTable(6);
+    private PdfPTable crearFilaInformacionEntrega(String[] h) throws Exception {
+        PdfPTable table = new PdfPTable(4);
         table.setWidthPercentage(100);
-        table.setWidths(new float[] { 10f, 15f, 10f, 15f, 10f, 40f });
+        table.setWidths(new float[] { 22f, 28f, 26f, 24f });
 
-        table.addCell(crearCeldaEtiqueta("OT / OS:"));
-        table.addCell(crearCeldaValor(valor(h[2])));
-        table.addCell(crearCeldaEtiqueta("UEN"));
-        table.addCell(crearCeldaValor(valor(h[3])));
-        table.addCell(crearCeldaEtiqueta("CLIENTE"));
-        table.addCell(crearCeldaValor(formatearCliente(h[4], h[5])));
+        // Row 1
+        table.addCell(crearCeldaEtiqueta("FECHA DE SOLICITUD:"));
+        table.addCell(crearCeldaValor(formatearFecha(h[2])));
+        table.addCell(crearCeldaEtiqueta("FECHA TENTATIVA DE ENTREGA:"));
+        table.addCell(crearCeldaValor(formatearFecha(h[3])));
+
+        // Row 2
+        table.addCell(crearCeldaEtiqueta("SOLICITADO POR:"));
+        table.addCell(crearCeldaValor(valor(h[4])));
+        table.addCell(crearCeldaEtiqueta("TIPO DE ENTREGA:"));
+        table.addCell(crearCeldaValor("-"));
+
+        // Row 3
+        table.addCell(crearCeldaEtiqueta("NUMERO CONTACTO:"));
+        table.addCell(crearCeldaValor(valor(h[6])));
+        table.addCell(crearCeldaEtiqueta("QUIEN RECIBE:"));
+        table.addCell(crearCeldaValor(valor(h[5])));
+
+        // Row 4
+        table.addCell(crearCeldaEtiqueta("DIRECCION DE ENTREGA:"));
+        table.addCell(crearCeldaValor(valor(h[8])));
+        table.addCell(crearCeldaEtiqueta("CIUDAD DE ENTREGA:"));
+        table.addCell(crearCeldaValor(valor(h[7])));
+
+        // Row 5
+        table.addCell(crearCeldaEtiqueta("OBSERVACIONES:"));
+        PdfPCell cellObs = crearCelda(valor(h[9]), fontNormal, Element.ALIGN_LEFT, null, 3f);
+        cellObs.setColspan(3);
+        table.addCell(cellObs);
 
         return table;
     }
@@ -272,114 +284,43 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
 
     private PdfPTable crearTablaDetalle(String[][] datos) throws Exception {
         String[] headers = {
-                "L", "G", "E", "DESCRIPCION", "UND", "Cantidad / Und.", "Cantidad / Mts.", "Uso", "MT2 Total", "Unidad Medida STD", "CANTIDAD TOTAL"
+                "NOMBRE", "REFERENCIA", "DESCRIPCION", "UND", "CANTIDAD", "TIPO DESTINO", "OBSERVACIONES",
+                "SALIDA ALMACEN", "FIRMA ALMACEN"
         };
 
         PdfPTable table = new PdfPTable(headers.length);
         table.setWidthPercentage(100);
-        table.setWidths(new float[] { 3f, 3f, 3f, 28f, 4f, 6f, 6f, 10f, 6f, 5f, 7f });
+        table.setWidths(new float[] { 18f, 11f, 15f, 5f, 9f, 12f, 14f, 8f, 8f });
 
         for (String header : headers) {
             table.addCell(crearCeldaEncabezadoTabla(header));
         }
 
         if (datos != null && !datos[0][0].equals("0")) {
-            int i = 0;
             int alterno = 0;
-            while (i < datos.length) {
-                String refActual = datos[i][1];
-                int groupEnd = i;
-                double totalCantidadReferencia = 0;
-                while (groupEnd < datos.length && datos[groupEnd][1].equals(refActual)) {
-                    groupEnd++;
+            for (String[] fila : datos) {
+                Color bg = (alterno % 2 == 0) ? null : GRIS_CLARO;
+
+                // Resolve colaborador name (first index). If null or empty, display the cedula
+                // (last index)
+                String nombreColaborador = fila[0];
+                if (nombreColaborador == null || nombreColaborador.trim().isEmpty()) {
+                    nombreColaborador = valor(fila[7]);
                 }
 
-                String lastLineCodigo = "";
-                for (int k = i; k < groupEnd; k++) {
-                    String lineCodigo = datos[k][0];
-                    if (!lineCodigo.equals(lastLineCodigo)) {
-                        totalCantidadReferencia += parseDouble(datos[k][5]);
-                        lastLineCodigo = lineCodigo;
-                    }
-                }
+                table.addCell(crearCelda(nombreColaborador, fontMini, Element.ALIGN_LEFT, bg, 3f));
+                table.addCell(crearCelda(valor(fila[1]), fontMini, Element.ALIGN_CENTER, bg, 3f));
+                table.addCell(crearCeldaDetalleConInterlineado(valor(fila[2]), fontMini, Element.ALIGN_LEFT, bg));
+                table.addCell(crearCelda(valor(fila[3]), fontMini, Element.ALIGN_CENTER, bg, 3f));
+                table.addCell(crearCelda(formatearValorOpcional(fila[4]), fontMini, Element.ALIGN_RIGHT, bg, 3f));
+                table.addCell(crearCelda(valor(fila[5]), fontMini, Element.ALIGN_LEFT, bg, 3f));
+                table.addCell(crearCelda(valor(fila[6]), fontMini, Element.ALIGN_LEFT, bg, 3f));
 
-                int k = i;
-                while (k < groupEnd) {
-                    String lineCodigoActual = datos[k][0];
-                    int subGroupEnd = k;
-                    while (subGroupEnd < groupEnd && datos[subGroupEnd][0].equals(lineCodigoActual)) {
-                        subGroupEnd++;
-                    }
-                    int subGroupSize = subGroupEnd - k;
-                    Color bg = (alterno % 2 == 0) ? null : GRIS_CLARO;
+                // Columnas de salida y firma de almacén vacías para llenar a mano
+                table.addCell(crearCelda(" ", fontMini, Element.ALIGN_CENTER, bg, 3f));
+                table.addCell(crearCelda(" ", fontMini, Element.ALIGN_CENTER, bg, 3f));
 
-                    for (int idx = k; idx < subGroupEnd; idx++) {
-                        String[] fila = datos[idx];
-                        boolean isFirst = (idx == k);
-
-                        if (isFirst) {
-                            String[] lge = dividirReferencia(fila[1]);
-                            
-                            PdfPCell cellL = crearCelda(lge[0], fontMini, Element.ALIGN_CENTER, bg, 3f);
-                            cellL.setRowspan(subGroupSize);
-                            table.addCell(cellL);
-
-                            PdfPCell cellG = crearCelda(lge[1], fontMini, Element.ALIGN_CENTER, bg, 3f);
-                            cellG.setRowspan(subGroupSize);
-                            table.addCell(cellG);
-
-                            PdfPCell cellE = crearCelda(lge[2], fontMini, Element.ALIGN_CENTER, bg, 3f);
-                            cellE.setRowspan(subGroupSize);
-                            table.addCell(cellE);
-
-                            PdfPCell cellDesc = crearCeldaDetalleConInterlineado(valor(fila[2]), fontMini, Element.ALIGN_LEFT, bg);
-                            cellDesc.setRowspan(subGroupSize);
-                            table.addCell(cellDesc);
-
-                            PdfPCell cellUnd = crearCelda(valor(fila[3]), fontMini, Element.ALIGN_CENTER, bg, 3f);
-                            cellUnd.setRowspan(subGroupSize);
-                            table.addCell(cellUnd);
-                        }
-
-                        table.addCell(crearCelda(formatearValorOpcional(fila[6]), fontMini, Element.ALIGN_RIGHT, bg, 3f));
-                        table.addCell(crearCelda(formatearValorOpcional(fila[7]), fontMini, Element.ALIGN_RIGHT, bg, 3f));
-                        table.addCell(crearCelda(valor(fila[8]), fontMini, Element.ALIGN_LEFT, bg, 3f));
-
-                        String cantUndRaw = fila[6];
-                        String cantMtsRaw = fila[7];
-                        String mt2TotalStr = "-";
-                        if (cantUndRaw != null && !cantUndRaw.trim().isEmpty() && cantMtsRaw != null && !cantMtsRaw.trim().isEmpty()) {
-                            double u = parseDouble(cantUndRaw);
-                            double m = parseDouble(cantMtsRaw);
-                            mt2TotalStr = formateadorNumero.format(u * m);
-                        }
-                        table.addCell(crearCelda(mt2TotalStr, fontMini, Element.ALIGN_RIGHT, bg, 3f));
-
-                        if (isFirst) {
-                            PdfPCell cellMedidaStd = crearCelda(valor(fila[4]), fontMini, Element.ALIGN_CENTER, bg, 3f);
-                            cellMedidaStd.setRowspan(subGroupSize);
-                            table.addCell(cellMedidaStd);
-
-                            Color bgGrisOscuro = new Color(215, 215, 215);
-                            PdfPCell cellCantTotal = crearCelda(formatearValorOpcional(fila[5]), fontMini, Element.ALIGN_RIGHT, bgGrisOscuro, 3f);
-                            cellCantTotal.setRowspan(subGroupSize);
-                            table.addCell(cellCantTotal);
-                        }
-                    }
-
-                    alterno++;
-                    k = subGroupEnd;
-                }
-
-                Color bgTotal = new Color(230, 230, 230);
-                PdfPCell cellTotalLabel = crearCelda("TOTAL REFERENCIA " + refActual, fontNegrita, Element.ALIGN_RIGHT, bgTotal, 4f, 10);
-                table.addCell(cellTotalLabel);
-
-                Color bgTotalCant = new Color(195, 195, 195);
-                PdfPCell cellTotalValue = crearCelda(formateadorNumero.format(totalCantidadReferencia), fontNegrita, Element.ALIGN_RIGHT, bgTotalCant, 4f);
-                table.addCell(cellTotalValue);
-
-                i = groupEnd;
+                alterno++;
             }
         }
 
@@ -396,78 +337,21 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
         return celda;
     }
 
-    private PdfPTable crearSeccionFirmas() throws Exception {
-        String[] roles = {
-                "SOLICITANTE",
-                "CONTROL PRESUPUESTAL",
-                "GERENTE DE PRODUCCIÓN",
-                "ALMACÉN Y LOGÍSTICA"
-        };
-
-        PdfPTable contenedor = new PdfPTable(1);
-        contenedor.setWidthPercentage(100);
-
-        PdfPTable firmas = new PdfPTable(4);
-        firmas.setWidthPercentage(100);
-        firmas.setWidths(new float[] { 25, 25, 25, 25 });
-
-        for (String rol : roles) {
-            PdfPCell celda = new PdfPCell();
-            celda.setBorder(PdfPCell.BOX);
-            celda.setBorderColor(GRIS_BORDE);
-            celda.setPadding(4);
-            celda.setFixedHeight(75f);
-
-            PdfPTable bloque = new PdfPTable(1);
-            bloque.setWidthPercentage(100);
-            bloque.addCell(crearCeldaSinBorde(rol, fontNegrita, Element.ALIGN_CENTER));
-
-            PdfPCell lineaFirma = new PdfPCell(new Phrase(" ", fontMini));
-            lineaFirma.setBorder(PdfPCell.BOTTOM);
-            lineaFirma.setBorderWidthBottom(1f);
-            lineaFirma.setBorderColor(GRIS_BORDE);
-            lineaFirma.setFixedHeight(22f);
-            lineaFirma.setPaddingBottom(2);
-            bloque.addCell(lineaFirma);
-
-            bloque.addCell(crearCeldaSinBorde("FIRMA", fontMini, Element.ALIGN_CENTER));
-
-            PdfPTable fecha = new PdfPTable(2);
-            fecha.setWidthPercentage(100);
-            fecha.addCell(crearCelda("FECHA", fontNegrita, Element.ALIGN_CENTER, GRIS_CLARO, 2));
-            fecha.addCell(crearCelda(" ", fontNormal, Element.ALIGN_CENTER, null, 2));
-            bloque.addCell(fecha);
-
-            celda.addElement(bloque);
-            firmas.addCell(celda);
+    private String formatearFecha(String fecha) {
+        if (fecha == null || fecha.trim().isEmpty()) {
+            return "-";
         }
-
-        contenedor.addCell(firmas);
-        return contenedor;
-    }
-
-    private String[] dividirReferencia(String referencia) {
-        String ref = valor(referencia);
-        if (ref.isEmpty() || "-".equals(ref)) {
-            return new String[] { "", "", "" };
+        try {
+            if (fecha.length() >= 10) {
+                String soloFecha = fecha.substring(0, 10);
+                SimpleDateFormat entrada = new SimpleDateFormat("yyyy-MM-dd");
+                Date d = entrada.parse(soloFecha);
+                return new SimpleDateFormat("dd/MM/yyyy").format(d);
+            }
+        } catch (Exception e) {
+            // ignore
         }
-        String[] partes = ref.split("-");
-        String l = partes.length > 0 ? partes[0] : "";
-        String g = partes.length > 1 ? partes[1] : "";
-        String e = partes.length > 2 ? partes[partes.length - 1] : "";
-        return new String[] { l, g, e };
-    }
-
-    private String formatearCliente(String cliente, String ubicacion) {
-        String c = valor(cliente);
-        String u = valor(ubicacion);
-        if (c.isEmpty() || "-".equals(c)) {
-            return u.isEmpty() || "-".equals(u) ? "-" : u;
-        }
-        if (u.isEmpty() || "-".equals(u)) {
-            return c;
-        }
-        return c + " - " + u;
+        return fecha;
     }
 
     private String formatearValorOpcional(String val) {
@@ -529,7 +413,8 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
                     archivoMarca = new File("../images/imagenMarca2.png");
                 }
                 if (!archivoMarca.exists()) {
-                    archivoMarca = new File("C:\\Users\\amejoramiento1\\Desktop\\INFORMES SOLID\\images\\imagenMarca2.png");
+                    archivoMarca = new File(
+                            "C:\\Users\\amejoramiento1\\Desktop\\INFORMES SOLID\\images\\imagenMarca2.png");
                 }
                 if (archivoMarca.exists()) {
                     imgMarca = Image.getInstance(archivoMarca.getAbsolutePath());
@@ -561,7 +446,8 @@ public class ReporteSolicitudPaneleria extends BaseInforme {
                 if (imgMarca != null) {
                     cellRight = new PdfPCell(imgMarca, false);
                 } else {
-                    Font fontSolid = FontFactory.getFont("Helvetica", 9, Font.BOLD | Font.ITALIC, new Color(180, 180, 180));
+                    Font fontSolid = FontFactory.getFont("Helvetica", 9, Font.BOLD | Font.ITALIC,
+                            new Color(180, 180, 180));
                     cellRight = new PdfPCell(new Phrase("Solid-ERP", fontSolid));
                 }
                 cellRight.setHorizontalAlignment(Element.ALIGN_RIGHT);
