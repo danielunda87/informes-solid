@@ -57,7 +57,8 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         String codigoEsc = escaparSql(codigoSolicitud);
 
         String sqlCabecera = "SELECT tipo, codigosolicitud, ordentrabajo, uen, cliente, ubicacion, "
-                + "fecha, fechanecesidad, nombreusuario, observaciones, fecharadicacion, codigo "
+                + "to_char(fecha + hora, 'DD/MM/YYYY HH24:MI') AS fecha_solicitud_form, fechanecesidad, "
+                + "nombreusuario, observaciones, to_char(fecharadicacion, 'DD/MM/YYYY HH24:MI') AS fecha_radicacion_form, codigo "
                 + "FROM solicitudmaterial WHERE codigo::text = '" + codigoEsc + "'";
 
         ResultSet rsCab = conexion.funcionConsultar(sqlCabecera);
@@ -94,7 +95,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
     public void generarVistaPrevia(String codigoSolicitud) throws Exception {
         String[] cabecera = {
                 "MATERIAL", codigoSolicitud, "22096", "RCC", "ALIMENTOS CARNICOS", "BOGOTA",
-                "2026-06-19", "2026-06-19", "HARRY OSORIO LENIS", "OBSERVACION DE MATERIALES EN PRUEBA", "2026-06-19", "12"
+                "19/06/2026 13:48", "2026-06-19", "HARRY OSORIO LENIS", "OBSERVACION DE MATERIALES EN PRUEBA", "19/06/2026 14:15", "12"
         };
 
         String[][] detalle = {
@@ -231,7 +232,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         table.addCell(crearCeldaEtiqueta("OT / OS:"));
         table.addCell(crearCeldaValor(valor(h[2])));
         table.addCell(crearCeldaEtiqueta("FECHA DE SOLICITUD:"));
-        table.addCell(crearCeldaValor(formatearFecha(h[6])));
+        table.addCell(crearCeldaValor(valor(h[6])));
 
         // Fila 3
         table.addCell(crearCeldaEtiqueta("CLIENTE:"));
@@ -243,7 +244,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         table.addCell(crearCeldaEtiqueta("MATERIALES DE:"));
         table.addCell(crearCeldaValor(valor(h[0])));
         table.addCell(crearCeldaEtiqueta("FECHA DE RADICACIÓN:"));
-        table.addCell(crearCeldaValor(formatearFecha(h[10])));
+        table.addCell(crearCeldaValor(valor(h[10])));
 
         // Fila 5: Observaciones (100% de la línea)
         table.addCell(crearCeldaEtiqueta("OBSERVACIONES:"));
