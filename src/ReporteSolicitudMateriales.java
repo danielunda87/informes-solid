@@ -71,8 +71,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         String[] h = cabecera[0];
         String codigoInterno = h[11];
 
-        // Trae detalle del material
-        // Dejamos lista la columna ficticia ubicacion_fisica para ordenar por ella
+        // Trae detalle del material con su ubicación física desde catalogoproducto
         String sqlDetalle = "SELECT "
                 + "lsm.referenciaproducto, "
                 + "lsm.descripcionproducto, "
@@ -81,8 +80,9 @@ public class ReporteSolicitudMateriales extends BaseInforme {
                 + "lsm.tipodestino, "
                 + "lsm.observaciones, "
                 + "lsm.codigo, "
-                + "'' AS ubicacion_fisica "
+                + "cp.ubicacionalmacen AS ubicacion_fisica "
                 + "FROM lineasolicitudmaterial lsm "
+                + "LEFT JOIN catalogoproducto cp ON cp.referencia = lsm.referenciaproducto "
                 + "WHERE lsm.solicitudmaterial = '" + escaparSql(codigoInterno) + "' "
                 + "ORDER BY ubicacion_fisica, lsm.referenciaproducto, lsm.codigo";
 
