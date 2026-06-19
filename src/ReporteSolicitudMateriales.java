@@ -57,7 +57,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         String codigoEsc = escaparSql(codigoSolicitud);
 
         String sqlCabecera = "SELECT tipo, codigosolicitud, ordentrabajo, uen, cliente, ubicacion, "
-                + "fecha, fechanecesidad, nombreusuario, codigo "
+                + "fecha, fechanecesidad, nombreusuario, observaciones, fecharadicacion, codigo "
                 + "FROM solicitudmaterial WHERE codigo::text = '" + codigoEsc + "'";
 
         ResultSet rsCab = conexion.funcionConsultar(sqlCabecera);
@@ -68,7 +68,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         }
 
         String[] h = cabecera[0];
-        String codigoInterno = h[9];
+        String codigoInterno = h[11];
 
         // Trae detalle del material
         // Dejamos lista la columna ficticia ubicacion_fisica para ordenar por ella
@@ -78,6 +78,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
                 + "lsm.unidadmedida, "
                 + "lsm.cantidad, "
                 + "lsm.tipodestino, "
+                + "lsm.observaciones, "
                 + "lsm.codigo, "
                 + "'' AS ubicacion_fisica "
                 + "FROM lineasolicitudmaterial lsm "
@@ -93,11 +94,11 @@ public class ReporteSolicitudMateriales extends BaseInforme {
     public void generarVistaPrevia(String codigoSolicitud) throws Exception {
         String[] cabecera = {
                 "MATERIAL", codigoSolicitud, "22096", "RCC", "ALIMENTOS CARNICOS", "BOGOTA",
-                "2026-06-19", "2026-06-19", "HARRY OSORIO LENIS", "12"
+                "2026-06-19", "2026-06-19", "HARRY OSORIO LENIS", "OBSERVACION DE MATERIALES EN PRUEBA", "2026-06-19", "12"
         };
 
         String[][] detalle = {
-                { "7-4-47", "ENFRIADOR INTERCAL EIC GL-6T504/ 307-AC(AL)", "UND", "5", "1 - Entregar a planta", "47", "" }
+                { "7-4-47", "ENFRIADOR INTERCAL EIC GL-6T504/ 307-AC(AL)", "UND", "5", "1 - Entregar a planta", "Revisar antes de entrega", "47", "" }
         };
 
         escribirPdf(codigoSolicitud, cabecera, detalle, false);
@@ -241,8 +242,12 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         // Fila 4
         table.addCell(crearCeldaEtiqueta("MATERIALES DE:"));
         table.addCell(crearCeldaValor(valor(h[0])));
-        table.addCell(crearCeldaEtiqueta(""));
-        table.addCell(crearCeldaValor(""));
+        table.addCell(crearCeldaEtiqueta("FECHA DE RADICACIÓN:"));
+        table.addCell(crearCeldaValor(formatearFecha(h[10])));
+
+        // Fila 5: Observaciones (100% de la línea)
+        table.addCell(crearCeldaEtiqueta("OBSERVACIONES:"));
+        table.addCell(crearCelda(valor(h[9]), fontNormal, Element.ALIGN_LEFT, null, 3f, 3));
 
         return table;
     }
@@ -272,14 +277,14 @@ public class ReporteSolicitudMateriales extends BaseInforme {
 
     private PdfPTable crearTablaDetalle(String[][] datos) throws Exception {
         String[] headers = {
-                "L", "G", "E", "DESCRIPCIÓN", "UND", "CANT", "TIPO ENTREGA", "# ENTREGA",
+                "L", "G", "E", "DESCRIPCIÓN", "UND", "CANT", "TIPO ENTREGA", "OBSERVACIONES", "# ENTREGA",
                 "SALIDA ALMACEN", "REVISION CONFIR.", "FIRMA ALMACEN", "FIRMA PLANTA", "FECHA RECIBIDO", "UBICACIÓN"
         };
 
         PdfPTable table = new PdfPTable(headers.length);
         table.setWidthPercentage(100);
         // Anchos de columna sumando 100%
-        table.setWidths(new float[] { 3f, 3f, 3f, 28f, 4f, 5f, 10f, 4f, 7f, 7f, 7f, 7f, 7f, 10f });
+        table.setWidths(new float[] { 2.5f, 2.5f, 2.5f, 20f, 3.5f, 4f, 8f, 13f, 4f, 6.5f, 6.5f, 6.5f, 6.5f, 6.5f, 7f });
 
         for (String header : headers) {
             table.addCell(crearCeldaEncabezadoTabla(header));
@@ -295,7 +300,8 @@ public class ReporteSolicitudMateriales extends BaseInforme {
                 String und = valor(fila[2]);
                 String cant = formatearValorOpcional(fila[3]);
                 String tipoEntrega = valor(fila[4]);
-                String ubicacionFisica = valor(fila[6]); // columna ficticia
+                String observacionesLote = valor(fila[5]);
+                String ubicacionFisica = valor(fila[7]); // columna ficticia
 
                 // --- FILA 1 ---
                 // Celdas principales con rowspan = 3
@@ -326,6 +332,10 @@ public class ReporteSolicitudMateriales extends BaseInforme {
                 PdfPCell cellTipoDest = crearCelda(tipoEntrega, fontMini, Element.ALIGN_LEFT, bg, 3f);
                 cellTipoDest.setRowspan(3);
                 table.addCell(cellTipoDest);
+
+                PdfPCell cellObs = crearCeldaDetalleConInterlineado(observacionesLote, fontMini, Element.ALIGN_LEFT, bg);
+                cellObs.setRowspan(3);
+                table.addCell(cellObs);
 
                 // Celda de # Entrega y firmas individuales
                 table.addCell(crearCelda("1", fontMini, Element.ALIGN_CENTER, bg, 3f));
