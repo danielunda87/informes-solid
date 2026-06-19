@@ -161,7 +161,7 @@ public class ReporteSolicitudImportacion extends BaseInforme {
         }
 
         String sufijoFormato = formatoImpresion == FormatoImpresion.CLASICO ? "" : "_" + formatoImpresion.getCodigo();
-        dirArchivo = "temp" + File.separator + "Solicitud_Importacion_" + codigoSolicitud + sufijoFormato + "_"
+        dirArchivo = "temp" + File.separator + "Planilla de Impresion Importacion_" + codigoSolicitud + sufijoFormato + "_"
                 + System.currentTimeMillis() + ".pdf";
 
         Document documento = new Document(obtenerTamanoPagina(), obtenerMargen(), obtenerMargen(), 26, 36);
@@ -656,6 +656,7 @@ public class ReporteSolicitudImportacion extends BaseInforme {
 
         private PdfTemplate totalPagesTemplate;
         private BaseFont helv;
+        private Image imgMarca = null;
 
         public void setSeccion(String seccion) {
             this.seccion = seccion;
@@ -666,6 +667,12 @@ public class ReporteSolicitudImportacion extends BaseInforme {
             try {
                 totalPagesTemplate = writer.getDirectContent().createTemplate(30, 12);
                 helv = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
+                
+                File archivoMarca = new File("images/imagenMarca2.png");
+                if (archivoMarca.exists()) {
+                    imgMarca = Image.getInstance(archivoMarca.getAbsolutePath());
+                    imgMarca.scaleToFit(65, 18);
+                }
             } catch (Exception e) {
                 // ignore
             }
@@ -685,7 +692,7 @@ public class ReporteSolicitudImportacion extends BaseInforme {
 
                 // 1. Marca de agua en el centro de la página (en el fondo, muy tenue y grande)
                 PdfContentByte canvasUnder = writer.getDirectContentUnder();
-                Font fontMarca = FontFactory.getFont("Helvetica", 130, Font.BOLD, new Color(242, 242, 242));
+                Font fontMarca = FontFactory.getFont("Helvetica", 90, Font.BOLD, new Color(242, 242, 242));
                 Phrase marca = new Phrase(seccion, fontMarca);
 
                 ColumnText.showTextAligned(
@@ -728,8 +735,13 @@ public class ReporteSolicitudImportacion extends BaseInforme {
                 footerTable.addCell(cellCenter);
 
                 // Celda derecha: "Solid-ERP" (Marca de agua sutil abajo a la derecha)
-                Font fontSolid = FontFactory.getFont("Helvetica", 9, Font.BOLD | Font.ITALIC, new Color(180, 180, 180));
-                PdfPCell cellRight = new PdfPCell(new Phrase("Solid-ERP", fontSolid));
+                PdfPCell cellRight;
+                if (imgMarca != null) {
+                    cellRight = new PdfPCell(imgMarca, false);
+                } else {
+                    Font fontSolid = FontFactory.getFont("Helvetica", 9, Font.BOLD | Font.ITALIC, new Color(180, 180, 180));
+                    cellRight = new PdfPCell(new Phrase("Solid-ERP", fontSolid));
+                }
                 cellRight.setHorizontalAlignment(Element.ALIGN_RIGHT);
                 cellRight.setVerticalAlignment(Element.ALIGN_BOTTOM);
                 cellRight.setBorder(PdfPCell.NO_BORDER);
