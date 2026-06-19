@@ -287,7 +287,7 @@ public class ReporteSolicitudImportacion extends BaseInforme {
         PdfPTable table = new PdfPTable(5);
         table.setWidthPercentage(100);
         table.setHorizontalAlignment(Element.ALIGN_LEFT);
-        table.setWidths(new float[] { 22f, 20f, 15f, 25f, 18f });
+        table.setWidths(new float[] { 17f, 15f, 38f, 20f, 10f });
 
         table.addCell(crearCeldaEtiqueta("TIPO DE SOLICITUD"));
         table.addCell(crearCeldaValorCompacto(valor(h[0])));
