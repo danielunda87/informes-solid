@@ -57,7 +57,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         String codigoEsc = escaparSql(codigoSolicitud);
 
         String sqlCabecera = "SELECT tipo, codigosolicitud, ordentrabajo, uen, cliente, ubicacion, "
-                + "fecha, fechanecesidad, nombreusuario, direccionentrega, numerocontacto, codigo "
+                + "fecha, fechanecesidad, nombreusuario, codigo "
                 + "FROM solicitudmaterial WHERE codigo::text = '" + codigoEsc + "'";
 
         ResultSet rsCab = conexion.funcionConsultar(sqlCabecera);
@@ -68,7 +68,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         }
 
         String[] h = cabecera[0];
-        String codigoInterno = h[11];
+        String codigoInterno = h[9];
 
         // Trae detalle del material
         // Dejamos lista la columna ficticia ubicacion_fisica para ordenar por ella
@@ -93,7 +93,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
     public void generarVistaPrevia(String codigoSolicitud) throws Exception {
         String[] cabecera = {
                 "MATERIAL", codigoSolicitud, "22096", "RCC", "ALIMENTOS CARNICOS", "BOGOTA",
-                "2026-06-19", "2026-06-19", "HARRY OSORIO LENIS", "Calle 80 Bodega Central", "3154887766", "12"
+                "2026-06-19", "2026-06-19", "HARRY OSORIO LENIS", "12"
         };
 
         String[][] detalle = {
@@ -221,28 +221,28 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         table.setWidths(new float[] { 20f, 30f, 20f, 30f });
 
         // Fila 1
+        table.addCell(crearCeldaEtiqueta("UEN:"));
+        table.addCell(crearCeldaValor(valor(h[3])));
+        table.addCell(crearCeldaEtiqueta("SOLICITADO POR:"));
+        table.addCell(crearCeldaValor(valor(h[8])));
+
+        // Fila 2
         table.addCell(crearCeldaEtiqueta("OT / OS:"));
         table.addCell(crearCeldaValor(valor(h[2])));
         table.addCell(crearCeldaEtiqueta("FECHA DE SOLICITUD:"));
         table.addCell(crearCeldaValor(formatearFecha(h[6])));
 
-        // Fila 2
-        table.addCell(crearCeldaEtiqueta("SOLICITADO POR:"));
-        table.addCell(crearCeldaValor(valor(h[8])));
-        table.addCell(crearCeldaEtiqueta("FECHA TENTATIVA ENTREGA:"));
-        table.addCell(crearCeldaValor(formatearFecha(h[7])));
-
         // Fila 3
         table.addCell(crearCeldaEtiqueta("CLIENTE:"));
         table.addCell(crearCeldaValor(formatearCliente(h[4], h[5])));
-        table.addCell(crearCeldaEtiqueta("NUMERO DE CONTACTO:"));
-        table.addCell(crearCeldaValor(valor(h[10])));
+        table.addCell(crearCeldaEtiqueta("FECHA TENTATIVA ENTREGA:"));
+        table.addCell(crearCeldaValor(formatearFecha(h[7])));
 
         // Fila 4
-        table.addCell(crearCeldaEtiqueta("DIRECCION DE ENTREGA:"));
-        table.addCell(crearCeldaValor(valor(h[9])));
-        table.addCell(crearCeldaEtiqueta("UEN:"));
-        table.addCell(crearCeldaValor(valor(h[3])));
+        table.addCell(crearCeldaEtiqueta("MATERIALES DE:"));
+        table.addCell(crearCeldaValor(valor(h[0])));
+        table.addCell(crearCeldaEtiqueta(""));
+        table.addCell(crearCeldaValor(""));
 
         return table;
     }
@@ -358,6 +358,18 @@ public class ReporteSolicitudMateriales extends BaseInforme {
 
                 alterno++;
             }
+
+            // Espacio vacío para colocación de sellos debajo de la última fila con datos
+            // Equivale al espacio de unas 6 líneas del detalle (2 materiales completos)
+            PdfPCell cellSellos = new PdfPCell(new Phrase("ESPACIO PARA CONTROL Y SELLOS", FontFactory.getFont("Helvetica", 8, Font.BOLD, new Color(180, 180, 180))));
+            cellSellos.setColspan(headers.length);
+            cellSellos.setFixedHeight(85f);
+            cellSellos.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cellSellos.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cellSellos.setBorder(PdfPCell.BOX);
+            cellSellos.setBorderColor(GRIS_BORDE);
+            cellSellos.setBackgroundColor(null);
+            table.addCell(cellSellos);
         }
 
         return table;
@@ -452,11 +464,16 @@ public class ReporteSolicitudMateriales extends BaseInforme {
     }
 
     private class MarcaAguaPagina extends PdfPageEventHelper {
+        private PdfTemplate totalPagesTemplate;
+        private BaseFont helv;
         private Image imgMarca = null;
 
         @Override
         public void onOpenDocument(PdfWriter writer, Document document) {
             try {
+                totalPagesTemplate = writer.getDirectContent().createTemplate(30, 12);
+                helv = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.WINANSI, BaseFont.NOT_EMBEDDED);
+
                 File archivoMarca = new File("images/imagenMarca2.png");
                 if (!archivoMarca.exists()) {
                     archivoMarca = new File("../images/imagenMarca2.png");
@@ -477,20 +494,45 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         @Override
         public void onEndPage(PdfWriter writer, Document document) {
             try {
+                int paginaActual = writer.getPageNumber();
+                PdfContentByte canvasUnder = writer.getDirectContentUnder();
+
+                // 1. Marca de agua "PAGINA X" en el centro de la página (diagonal)
+                Font fontMarca = FontFactory.getFont("Helvetica", 90, Font.BOLD, new Color(245, 245, 245));
+                Phrase PhraseMarca = new Phrase("PAGINA " + paginaActual, fontMarca);
+                ColumnText.showTextAligned(
+                        canvasUnder,
+                        Element.ALIGN_CENTER,
+                        PhraseMarca,
+                        (document.right() + document.left()) / 2,
+                        (document.top() + document.bottom()) / 2,
+                        30);
+
+                // 2. Pie de página
                 PdfContentByte canvas = writer.getDirectContent();
                 PdfPTable footerTable = new PdfPTable(3);
                 footerTable.setWidthPercentage(100);
                 footerTable.setTotalWidth(document.right() - document.left());
                 footerTable.setWidths(new float[] { 30, 40, 30 });
 
+                // Celda izquierda: vacía
                 PdfPCell cellLeft = new PdfPCell(new Phrase(""));
                 cellLeft.setBorder(PdfPCell.NO_BORDER);
                 footerTable.addCell(cellLeft);
 
-                PdfPCell cellCenter = new PdfPCell(new Phrase(""));
+                // Celda central: Página X de Y
+                Phrase PhrasePagina = new Phrase("Página " + paginaActual + " de ", fontNormal);
+                if (totalPagesTemplate != null) {
+                    Image img = Image.getInstance(totalPagesTemplate);
+                    PhrasePagina.add(new Chunk(img, 0, 0));
+                }
+                PdfPCell cellCenter = new PdfPCell(PhrasePagina);
+                cellCenter.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cellCenter.setVerticalAlignment(Element.ALIGN_BOTTOM);
                 cellCenter.setBorder(PdfPCell.NO_BORDER);
                 footerTable.addCell(cellCenter);
 
+                // Celda derecha: logotipo de Solid-ERP
                 PdfPCell cellRight;
                 if (imgMarca != null) {
                     cellRight = new PdfPCell(imgMarca, false);
@@ -507,6 +549,21 @@ public class ReporteSolicitudMateriales extends BaseInforme {
                 footerTable.writeSelectedRows(0, -1, document.left(), 22, canvas);
             } catch (Exception e) {
                 // ignore
+            }
+        }
+
+        @Override
+        public void onCloseDocument(PdfWriter writer, Document document) {
+            if (totalPagesTemplate != null) {
+                try {
+                    totalPagesTemplate.beginText();
+                    totalPagesTemplate.setFontAndSize(helv, fontNormal.getSize());
+                    totalPagesTemplate.setTextMatrix(0, 1);
+                    totalPagesTemplate.showText(String.valueOf(writer.getPageNumber() - 1));
+                    totalPagesTemplate.endText();
+                } catch (Exception e) {
+                    // ignore
+                }
             }
         }
     }
