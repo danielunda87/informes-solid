@@ -115,7 +115,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         dirArchivo = "temp" + File.separator + "Planilla de Impresion Materiales_" + codigoSolicitud + "_"
                 + System.currentTimeMillis() + ".pdf";
 
-        Document documento = new Document(PageSize.LETTER.rotate(), 30, 30, 26, 36);
+        Document documento = new Document(PageSize.LETTER, 30, 30, 26, 36);
         PdfWriter writer = PdfWriter.getInstance(documento, new FileOutputStream(dirArchivo));
         MarcaAguaPagina eventHelper = new MarcaAguaPagina();
         writer.setPageEvent(eventHelper);
@@ -285,7 +285,7 @@ public class ReporteSolicitudMateriales extends BaseInforme {
         PdfPTable table = new PdfPTable(headers.length);
         table.setWidthPercentage(100);
         // Anchos de columna sumando 100%
-        table.setWidths(new float[] { 2.5f, 2.5f, 2.5f, 20f, 3.5f, 4f, 8f, 13f, 4f, 6.5f, 6.5f, 6.5f, 6.5f, 6.5f, 7f });
+        table.setWidths(new float[] { 2.5f, 2.5f, 2.5f, 19f, 3f, 3.5f, 8.5f, 14f, 3.5f, 6.8f, 6.8f, 6.8f, 6.8f, 6.8f, 7f });
 
         for (String header : headers) {
             table.addCell(crearCeldaEncabezadoTabla(header));
